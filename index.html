@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetFive · Online Connect-5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111520;
+    --surface2: #161b28;
+    --border: #1e2a42;
+    --cyan: #00e5ff;
+    --cyan-dim: rgba(0,229,255,.12);
+    --cyan-glow: rgba(0,229,255,.45);
+    --pink: #ff2d78;
+    --pink-dim: rgba(255,45,120,.12);
+    --pink-glow: rgba(255,45,120,.45);
+    --text: #c8d6f0;
+    --muted: #4a5568;
+    --grid: rgba(255,255,255,.06);
+    --stone-b: #00e5ff;
+    --stone-w: #ff2d78;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Share Tech Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-x: hidden;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.07) 2px,
+      rgba(0,0,0,.07) 4px
+    );
+    pointer-events: none; z-index: 9999;
+  }
+
+  .wrap {
+    width: 100%; max-width: 560px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 20px;
+  }
+
+  /* ── header ── */
+  header { text-align: center; }
+  .kicker {
+    font-size: 10px; letter-spacing: .5em;
+    text-transform: uppercase; color: var(--cyan);
+    opacity: .6; margin-bottom: 8px;
+  }
+  h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: clamp(44px, 11vw, 72px);
+    line-height: 1;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text);
+    text-shadow: 0 0 40px var(--cyan-glow);
+  }
+  h1 .accent { color: var(--cyan); }
+  .sub-title {
+    font-size: 11px; letter-spacing: .25em;
+    color: var(--muted); margin-top: 6px; text-transform: uppercase;
+  }
+
+  /* ── panel ── */
+  .panel {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px;
+    display: flex; flex-direction: column; gap: 18px;
+    position: relative; overflow: hidden;
+  }
+  .panel::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: .5;
+  }
+  label {
+    display: block;
+    font-size: 10px; letter-spacing: .3em;
+    text-transform: uppercase; color: var(--cyan); margin-bottom: 6px;
+  }
+  input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px;
+    padding: 12px 14px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  input:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px var(--cyan-dim);
+  }
+  input.invalid {
+    border-color: var(--pink);
+    animation: shake .4s;
+  }
+  @keyframes shake {
+    10%,90%{transform:translateX(-3px);}
+    20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-7px);}
+    40%,60%{transform:translateX(7px);}
+  }
+  .btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700; font-size: 16px;
+    letter-spacing: .2em; text-transform: uppercase;
+    background: transparent;
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background .2s, box-shadow .2s, color .2s;
+    position: relative; overflow: hidden;
+  }
+  .btn:hover {
+    background: var(--cyan-dim);
+    box-shadow: 0 0 20px var(--cyan-glow);
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+
+  /* ── toast ── */
+  .toast {
+    min-height: 18px; font-size: 11px;
+    letter-spacing: .1em; color: var(--pink); text-align: center;
+  }
+
+  /* ── status row ── */
+  .status-row {
+    width: 100%; display: flex;
+    justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .players { display: flex; gap: 20px; }
+  .chip {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; opacity: .55; transition: opacity .25s;
+  }
+  .chip.active { opacity: 1; }
+  .chip-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 1px solid transparent;
+  }
+  .chip-dot.cyan {
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+  }
+  .chip-dot.pink {
+    background: var(--pink);
+    box-shadow: 0 0 8px var(--pink);
+  }
+  .chip.active .chip-dot.cyan { box-shadow: 0 0 0 3px var(--cyan-dim), 0 0 12px var(--cyan); }
+  .chip.active .chip-dot.pink { box-shadow: 0 0 0 3px var(--pink-dim), 0 0 12px var(--pink); }
+  .result-text { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: .1em; }
+
+  /* ── turn banner ── */
+  .turn-banner {
+    width: 100%; text-align: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px; font-weight: 600; letter-spacing: .25em;
+    text-transform: uppercase;
+    padding: 10px 0; border-radius: 4px;
+    border: 1px solid var(--border);
+    transition: all .3s;
+  }
+  .turn-banner.mine {
+    color: var(--bg);
+    background: var(--cyan);
+    border-color: var(--cyan);
+    box-shadow: 0 0 24px var(--cyan-glow);
+    animation: pulse-banner 2s ease-in-out infinite;
+  }
+  .turn-banner.theirs {
+    color: var(--muted);
+    background: transparent;
+    border-color: var(--border);
+  }
+  @keyframes pulse-banner {
+    0%,100% { box-shadow: 0 0 18px var(--cyan-glow); }
+    50%      { box-shadow: 0 0 36px var(--cyan), 0 0 60px var(--cyan-glow); }
+  }
+
+  /* ── board ── */
+  .board-wrap {
+    position: relative;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(0,229,255,.04), 0 24px 60px rgba(0,0,0,.8);
+  }
+  /* corner accents */
+  .board-wrap::before, .board-wrap::after,
+  .board-wrap .corner-br, .board-wrap .corner-bl {
+    content: '';
+    position: absolute; width: 16px; height: 16px;
+    border-color: var(--cyan); border-style: solid;
+    opacity: .5;
+  }
+  .board-wrap::before { top: 6px; left: 6px; border-width: 2px 0 0 2px; }
+  .board-wrap::after  { top: 6px; right: 6px; border-width: 2px 2px 0 0; }
+  .board-wrap .corner-br { bottom: 6px; right: 6px; border-width: 0 2px 2px 0; }
+  .board-wrap .corner-bl { bottom: 6px; left: 6px; border-width: 0 0 2px 2px; }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    width: min(78vw, 440px);
+    height: min(78vw, 440px);
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      var(--bg);
+    background-size:
+      calc(100%/10) calc(100%/10),
+      calc(100%/10) calc(100%/10);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    position: relative;
+  }
+  .cell {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .cell:hover:not(.taken)::after {
+    content: '';
+    width: 50%; height: 50%;
+    border-radius: 50%;
+    background: var(--cyan); opacity: .2;
+  }
+  .board.locked { pointer-events: none; }
+
+  .stone {
+    width: 72%; height: 72%;
+    border-radius: 50%;
+    animation: pop .18s cubic-bezier(.34, 1.56, .64, 1);
+  }
+  .stone.cyan-s {
+    background: radial-gradient(circle at 35% 30%, #80ffff, var(--cyan) 55%, #004060);
+    box-shadow: 0 0 10px var(--cyan-glow), 0 2px 4px rgba(0,0,0,.6);
+  }
+  .stone.pink-s {
+    background: radial-gradient(circle at 35% 30%, #ff9ec0, var(--pink) 55%, #500028);
+    box-shadow: 0 0 10px var(--pink-glow), 0 2px 4px rgba(0,0,0,.6);
+  }
+  .stone.win {
+    animation: win-pulse 1s ease-in-out infinite;
+  }
+  .stone.cyan-s.win { box-shadow: 0 0 0 3px var(--cyan), 0 0 22px var(--cyan); }
+  .stone.pink-s.win { box-shadow: 0 0 0 3px var(--pink), 0 0 22px var(--pink); }
+  @keyframes pop {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  @keyframes win-pulse {
+    0%,100% { transform: scale(1); }
+    50%     { transform: scale(1.15); }
+  }
+
+  /* ── overlay ── */
+  .overlay {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0);
+    backdrop-filter: blur(0px);
+    transition: background .45s, backdrop-filter .45s;
+    pointer-events: none;
+  }
+  .overlay.show {
+    background: rgba(0,0,0,.8);
+    backdrop-filter: blur(4px);
+    pointer-events: auto;
+  }
+  .verdict {
+    text-align: center;
+    transform: translateY(30px); opacity: 0;
+    transition: transform .5s cubic-bezier(.22,1.4,.4,1), opacity .4s;
+  }
+  .overlay.show .verdict { transform: translateY(0); opacity: 1; }
+
+  .verdict-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: clamp(56px, 16vw, 110px);
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .verdict.win  .verdict-title { color: var(--cyan); text-shadow: 0 0 40px var(--cyan); }
+  .verdict.lose .verdict-title { color: var(--muted); }
+  .verdict.draw .verdict-title { color: var(--text); }
+  .verdict-sub {
+    font-size: 12px; letter-spacing: .35em; text-transform: uppercase;
+    margin-top: 10px; opacity: .7;
+  }
+  .verdict .again-btn {
+    margin-top: 30px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700; font-size: 15px;
+    letter-spacing: .2em; text-transform: uppercase;
+    background: transparent; color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 12px 32px; border-radius: 4px;
+    cursor: pointer;
+    transition: background .2s, box-shadow .2s;
+  }
+  .verdict .again-btn:hover {
+    background: var(--cyan-dim);
+    box-shadow: 0 0 20px var(--cyan-glow);
+  }
+
+  /* confetti */
+  .confetti-piece {
+    position: fixed; top: -14px; width: 7px; height: 12px;
+    z-index: 201; pointer-events: none; opacity: 0;
+  }
+  .confetti-piece.go { animation: fall var(--dur) linear forwards; }
+  @keyframes fall {
+    0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+    100% { opacity: .8; transform: translateY(102vh) rotate(720deg); }
+  }
+
+  .footer {
+    font-size: 10px; letter-spacing: .2em;
+    color: var(--muted); text-transform: uppercase;
+    opacity: .5;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Distributed Systems &middot; TCP Stream Socket</div>
+    <h1>NET<span class="accent">FIVE</span></h1>
+    <div class="sub-title">Real-time · Two-player · Server-judged</div>
+  </header>
+
+  <!-- Join panel -->
+  <div class="panel" id="joinPanel">
+    <div>
+      <label for="nameInput">Player tag <span style="color:var(--pink)">*</span></label>
+      <input id="nameInput" type="text" maxlength="16" placeholder="Enter your tag…" autocomplete="off">
+    </div>
+    <div>
+      <label for="serverInput">Server address</label>
+      <input id="serverInput" type="text" placeholder="wss://your-server.onrender.com" autocomplete="off">
+    </div>
+    <button class="btn" id="joinBtn">Connect &amp; Find Match</button>
+    <div class="toast" id="joinToast"></div>
+  </div>
+
+  <!-- Game view (hidden until match starts) -->
+  <div id="gameView" class="hidden" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div class="status-row">
+      <div class="players">
+        <span class="chip" id="chipCyan">
+          <span class="chip-dot cyan"></span>
+          <span id="nameCyan">—</span>
+        </span>
+        <span class="chip" id="chipPink">
+          <span class="chip-dot pink"></span>
+          <span id="namePink">—</span>
+        </span>
+      </div>
+      <div class="result-text" id="resultText"></div>
+    </div>
+
+    <div class="turn-banner" id="turnBanner">Connecting…</div>
+
+    <div class="board-wrap">
+      <span class="corner-br"></span>
+      <span class="corner-bl"></span>
+      <div class="board" id="board"></div>
+    </div>
+    <div class="toast" id="gameToast"></div>
+  </div>
+
+  <div class="footer">Stream-socket relay &middot; server-judged &middot; concurrent pairs</div>
+</div>
+
+<!-- End-of-game overlay -->
+<div class="overlay" id="overlay">
+  <div class="verdict" id="verdict">
+    <div class="verdict-title" id="verdictTitle">—</div>
+    <div class="verdict-sub" id="verdictSub"></div>
+    <div><button class="again-btn" id="againBtn">Play Again</button></div>
+  </div>
+</div>
+
+<script>
+/* ── constants ── */
+const SIZE = 10;
+// cyan = first player (replaces "black"), pink = second player (replaces "white")
+// Server still uses "black"/"white" internally — we just remap the display
+
+const $ = id => document.getElementById(id);
+let ws = null;
+let myColor = null;   // "black" or "white" from server
+let myTurn  = false;
+let gameOver = false;
+
+const joinPanel = $('joinPanel');
+const gameView  = $('gameView');
+const boardEl   = $('board');
+const cells     = [];
+
+/* ── build 10×10 grid ── */
+for (let r = 0; r < SIZE; r++) {
+  cells[r] = [];
+  for (let c = 0; c < SIZE; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.addEventListener('click', () => onCellClick(r, c));
+    boardEl.appendChild(cell);
+    cells[r][c] = cell;
+  }
+}
+
+/* pre-fill server address */
+$('serverInput').value = 'wss://netfive-server.onrender.com';
+
+/* ── map server color ("black"/"white") to our cyan/pink ── */
+function stoneClass(serverColor) {
+  return serverColor === 'black' ? 'cyan-s' : 'pink-s';
+}
+function chipId(serverColor) {
+  return serverColor === 'black' ? 'chipCyan' : 'chipPink';
+}
+function nameId(serverColor) {
+  return serverColor === 'black' ? 'nameCyan' : 'namePink';
+}
+
+/* ── join ── */
+$('joinBtn').addEventListener('click', connect);
+$('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+$('nameInput').addEventListener('input',   () => $('nameInput').classList.remove('invalid'));
+$('againBtn').addEventListener('click', () => { closeOverlay(); send({type:'reset'}); });
+
+function connect() {
+  const nameEl = $('nameInput');
+  const name = nameEl.value.trim();
+  let addr = $('serverInput').value.trim();
+
+  if (!name) {
+    nameEl.classList.remove('invalid');
+    void nameEl.offsetWidth;
+    nameEl.classList.add('invalid');
+    nameEl.focus();
+    setToast('joinToast', 'Tag is required.');
+    return;
+  }
+  if (!addr) { setToast('joinToast', 'Enter a server address.'); return; }
+  if (!/^wss?:\/\//.test(addr))
+    addr = (location.protocol === 'https:' ? 'wss://' : 'ws://') + addr;
+
+  setToast('joinToast', 'Connecting…');
+  $('joinBtn').disabled = true;
+
+  try { ws = new WebSocket(addr); }
+  catch(e) { setToast('joinToast', 'Invalid address.'); $('joinBtn').disabled = false; return; }
+
+  ws.onopen    = () => send({type:'join', name});
+  ws.onmessage = ev => handle(JSON.parse(ev.data));
+  ws.onerror   = ()  => { setToast('joinToast', 'Could not connect.'); $('joinBtn').disabled = false; };
+  ws.onclose   = ()  => {
+    if (!gameView.classList.contains('hidden'))
+      setToast('gameToast', 'Server connection lost.');
+    else { setToast('joinToast', 'Connection closed.'); $('joinBtn').disabled = false; }
+  };
+}
+
+function send(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify(obj));
+}
+
+/* ── message handler ── */
+function handle(msg) {
+  switch (msg.type) {
+    case 'waiting':
+      setToast('joinToast', 'Searching for opponent…');
+      break;
+    case 'start':
+      startGame(msg);
+      break;
+    case 'move':
+      placeStone(msg.row, msg.col, msg.color);
+      myTurn = (msg.turn === myColor);
+      updateTurn(msg.turn);
+      break;
+    case 'over':
+      endGame(msg);
+      break;
+    case 'opponent_left':
+      gameOver = true;
+      boardEl.classList.add('locked');
+      $('resultText').textContent = 'Opponent left';
+      $('turnBanner').className = 'turn-banner';
+      $('turnBanner').textContent = 'Opponent disconnected';
+      setToast('gameToast', 'Your opponent left.');
+      break;
+    case 'error':
+      setToast('gameToast', msg.message);
+      break;
+  }
+}
+
+/* ── start / reset ── */
+function startGame(msg) {
+  if (msg.color) myColor = msg.color;
+  joinPanel.classList.add('hidden');
+  gameView.classList.remove('hidden');
+  closeOverlay();
+  gameOver = false;
+  boardEl.classList.remove('locked');
+
+  for (let r = 0; r < SIZE; r++)
+    for (let c = 0; c < SIZE; c++) {
+      cells[r][c].className = 'cell';
+      cells[r][c].innerHTML = '';
+    }
+
+  const opp = myColor === 'black' ? 'white' : 'black';
+  if (msg.you && msg.opponent) {
+    $(nameId(myColor)).textContent  = msg.you;
+    $(nameId(opp)).textContent = msg.opponent;
+  }
+  myTurn = (msg.turn === myColor);
+  updateTurn(msg.turn);
+  $('resultText').textContent = '';
+}
+
+/* ── place stone ── */
+function placeStone(r, c, serverColor) {
+  const cell = cells[r][c];
+  if (cell.classList.contains('taken')) return;
+  cell.classList.add('taken');
+  const s = document.createElement('div');
+  s.className = 'stone ' + stoneClass(serverColor);
+  cell.appendChild(s);
+}
+
+/* ── turn indicator ── */
+function updateTurn(turn) {
+  $('chipCyan').classList.toggle('active', turn === 'black');
+  $('chipPink').classList.toggle('active', turn === 'white');
+  if (gameOver || !turn) return;
+
+  const banner = $('turnBanner');
+  const mine = (turn === myColor);
+  banner.className = 'turn-banner ' + (mine ? 'mine' : 'theirs');
+
+  const opp = turn === 'black' ? $('nameCyan').textContent : $('namePink').textContent;
+  banner.textContent = mine ? '▶  Your Turn' : `${escHtml(opp)} is thinking…`;
+}
+
+/* ── cell click ── */
+function onCellClick(r, c) {
+  if (gameOver || !myTurn || cells[r][c].classList.contains('taken')) return;
+  send({type:'move', row:r, col:c});
+}
+
+/* ── end game ── */
+function endGame(msg) {
+  gameOver = true;
+  myTurn   = false;
+  boardEl.classList.add('locked');
+  $('chipCyan').classList.remove('active');
+  $('chipPink').classList.remove('active');
+  $('turnBanner').className = 'turn-banner';
+  $('turnBanner').textContent = 'Game Over';
+
+  const v    = $('verdict');
+  const titl = $('verdictTitle');
+  const sub  = $('verdictSub');
+
+  if (msg.result === 'draw') {
+    $('resultText').textContent = 'Draw';
+    v.className = 'verdict draw';
+    titl.textContent = 'Draw';
+    sub.textContent  = 'Board is full';
+  } else {
+    (msg.line || []).forEach(([r,c]) => {
+      const s = cells[r][c].querySelector('.stone');
+      if (s) s.classList.add('win');
+    });
+    const won = (msg.winner === myColor);
+    const wName = msg.winner === 'black' ? $('nameCyan').textContent : $('namePink').textContent;
+    $('resultText').textContent = won ? 'You win' : 'You lose';
+    if (won) {
+      v.className = 'verdict win';
+      titl.textContent = 'Victory';
+      sub.textContent  = 'Five in a row!';
+      launchConfetti();
+    } else {
+      v.className = 'verdict lose';
+      titl.textContent = 'Defeated';
+      sub.textContent  = `${escHtml(wName)} connected five`;
+    }
+  }
+  openOverlay();
+}
+
+function openOverlay() {
+  const o = $('overlay');
+  o.classList.remove('hidden');
+  requestAnimationFrame(() => o.classList.add('show'));
+}
+function closeOverlay() {
+  $('overlay').classList.remove('show');
+}
+
+function launchConfetti() {
+  const colors = ['#00e5ff','#ff2d78','#80ffff','#ff9ec0','#1e2a42'];
+  for (let i = 0; i < 80; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.background = colors[(Math.random() * colors.length) | 0];
+    p.style.setProperty('--dur', (1.8 + Math.random() * 2) + 's');
+    p.style.transform = `rotate(${Math.random()*360}deg)`;
+    if (Math.random() < .4) p.style.borderRadius = '50%';
+    document.body.appendChild(p);
+    setTimeout(() => p.classList.add('go'), Math.random() * 500);
+    setTimeout(() => p.remove(), 5000);
+  }
+}
+
+function setToast(id, text) {
+  const el = $(id);
+  el.textContent = text;
+  el.style.opacity = 1;
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g,
+    m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+</body>
+</html>
