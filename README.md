@@ -1,4 +1,4 @@
-# NetFive — Online Connect-5
+# GoMoKu GAME
 
 A real-time, two-player Connect-5 game for the Distributed Systems assignment.
 Two players in separate browsers play live: moves appear instantly on both
@@ -46,7 +46,7 @@ The **server** runs as a live process on **Render** (free tier).
    - **Build command:** `pip install -r requirements.txt`
    - **Start command:** `python server.py`
    - **Plan:** Free
-5. Wait for the log to show `NetFive server listening on 0.0.0.0:...`
+5. Wait for the log to show `GoMoKu GAME server listening on 0.0.0.0:...`
 6. Your WebSocket address is your service URL with `wss://`:
    ```
    wss://your-service-name.onrender.com
@@ -62,7 +62,7 @@ The **server** runs as a live process on **Render** (free tier).
 ```bash
 git init
 git add .
-git commit -m "NetFive"
+git commit -m "GoMoKu GAME"
 git branch -M main
 git remote add origin https://github.com/<you>/<repo>.git
 git push -u origin main
