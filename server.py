@@ -1,5 +1,5 @@
 """
-NetFive — Online Connect-5 Game Server
+GoMoKu GAME
 ========================================
 
 Distributed Systems assignment.
