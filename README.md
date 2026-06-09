@@ -1,6 +1,6 @@
 # GoMoKu GAME
 
-A real-time, two-player Connect-5 game for the Distributed Systems assignment.
+A real-time, two-player game for the Distributed Systems assignment.
 Two players in separate browsers play live: moves appear instantly on both
 screens, the **server** records every move and decides the winner, and
 **multiple pairs** can play at the same time.
@@ -49,7 +49,7 @@ The **server** runs as a live process on **Render** (free tier).
 5. Wait for the log to show `GoMoKu GAME server listening on 0.0.0.0:...`
 6. Your WebSocket address is your service URL with `wss://`:
    ```
-   wss://your-service-name.onrender.com
+   wss://gomoku-med.onrender.com
    ```
 
 > Free Render services sleep after inactivity. If the first connection
